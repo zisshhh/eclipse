@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { Wallet } from "../types/wallet"
+import type { Wallet } from "./types/wallet"
 import { mnemonicToSeed } from "bip39";
 import { derivePath } from "ed25519-hd-key"
 import nacl from "tweetnacl"
