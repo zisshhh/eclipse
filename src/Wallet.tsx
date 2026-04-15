@@ -2,11 +2,12 @@ import { useEffect, useState } from "react"
 import type { Wallet } from "./types/wallet"
 import { mnemonicToSeed } from "bip39";
 import { derivePath } from "ed25519-hd-key"
-import nacl from "tweetnacl"
-import bs58 from "bs58"
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { easeInOut, motion } from "framer-motion"
+import { Button } from "./components/ui/button";
+import {toast} from "sonner";
 
-const ALCHEMY_RPC_URL = process.env.ALCHEMY_RPC_URL as string;
+const ALCHEMY_RPC_URL = import.meta.env.ALCHEMY_RPC_URL;
 console.log(ALCHEMY_RPC_URL);
 
 export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
@@ -34,18 +35,18 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
         try {
             let newWallet!: Wallet;
 
-            if (newWallet.chain === "solana") {
-                const seed = mnemonicToSeed(mnemonic);
+            if (activeChain === "solana") {
+                const seed = await mnemonicToSeed(mnemonic);
                 const path = `m/44'/501'/${selectedWalletIndex}'/0'`;
 
-                const { key } = derivePath(path, (await seed).toString('hex'));
-                const keypair = nacl.sign.keyPair.fromSeed(key);
+                const derivedSeed = derivePath(path, seed.toString("hex")).key;
+                const keypair = Keypair.fromSeed(derivedSeed);
 
                 newWallet = {
                     id: Date.now().toString(),
                     chain: "solana",
                     accountIndex: selectedWalletIndex,
-                    publicKey: bs58.encode(keypair.publicKey),
+                    publicKey: keypair.publicKey.toBase58(),
                     privateKey: Buffer.from(keypair.secretKey).toString('hex'),
                     showPrivateKey: false
                 };
@@ -103,7 +104,7 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
     }
 
     const sendTransection = async () => {
-        if (!selectedWallet || !sendForm.to || sendForm.amount) return;
+        if (!selectedWallet || !sendForm.to || !sendForm.amount) return;
         setLoading(true);
 
         try {
@@ -142,99 +143,48 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
     const filteredWallets = wallets.filter(w => w.chain === activeChain)
 
     return (
-        <div className="p-6 max-w-4xl mx-auto bg-zinc-950 min-h-screen text-white">
-            {/* Chain Tabs */}
-            <div className="flex gap-2 mb-8 border-b border-zinc-800">
-                <button onClick={() => setActiveChain('solana')} className={`px-6 py-3 rounded-t-xl font-semibold ${activeChain === 'solana' ? 'bg-violet-600 text-white' : 'text-zinc-400 hover:text-white'}`}>
-                    Solana (Devnet)
-                </button>
-                <button onClick={() => setActiveChain('ethereum')} className={`px-6 py-3 rounded-t-xl font-semibold ${activeChain === 'ethereum' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'}`}>
-                    Ethereum (Sepolia)
-                </button>
-            </div>
-
-            <button
-                onClick={addNewWallet}
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 py-4 rounded-2xl text-lg font-semibold flex items-center justify-center gap-3"
-            >
-                {loading ? 'Generating...' : `+ Add ${activeChain === 'solana' ? 'Solana' : 'Ethereum'} Wallet (${selectedWalletIndex})`}
-            </button>
-
-            <div className="mt-10 grid gap-6">
-                {filteredWallets.map(wallet => (
-                    <div key={wallet.id} className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 hover:border-violet-500 transition-all">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <span className={`px-3 py-1 text-xs rounded-full ${wallet.chain === 'solana' ? 'bg-violet-500' : 'bg-blue-500'}`}>
-                                    {wallet.chain.toUpperCase()}
-                                </span>
-                                <p className="text-sm text-zinc-400 mt-3">Wallet {wallets.filter(w => w.chain === wallet.chain).indexOf(wallet)}</p>
-                            </div>
-                            <button onClick={() => fetchBalance(wallet)} className="text-zinc-400 hover:text-white">
-                                <RefreshCw size={18} />
-                            </button>
-                        </div>
-
-                        <div className="mt-4 font-mono text-lg break-all">{wallet.publicKey}</div>
-                        {wallet.balance && <p className="text-emerald-400 mt-2 text-xl font-semibold">{wallet.balance}</p>}
-
-                        {/* Private Key */}
-                        <div className="mt-6">
-                            <div className="flex justify-between text-sm mb-2">
-                                <span className="text-zinc-400">Private Key</span>
-                                <button onClick={() => togglePrivateKey(wallet.id)} className="flex items-center gap-1 text-xs">
-                                    {wallet.showPrivateKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    {wallet.showPrivateKey ? 'Hide' : 'Show'}
-                                </button>
-                            </div>
-                            <div className="bg-black p-4 rounded-2xl font-mono text-sm break-all">
-                                {wallet.showPrivateKey ? wallet.privateKey : '•'.repeat(64)}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3 mt-8">
-                            <button onClick={() => copyToClipboard(wallet.publicKey)} className="flex-1 flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 rounded-2xl">
-                                <Copy size={18} /> Copy Address
-                            </button>
-                            <button onClick={() => setSelectedWallet(wallet)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded-2xl flex items-center justify-center gap-2">
-                                <Send size={18} /> Send {activeChain === 'solana' ? 'SOL' : 'ETH'}
-                            </button>
-                        </div>
+        <div className="flex flex-col gap-4 p-12">
+            {filteredWallets.length === 0 && (
+                <motion.div className="flex flex-col gap-4"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                        duration: 0.3,
+                        ease: easeInOut
+                    }}
+                >
+                    <div className="flex flex-col gap-2">
+                        <h1 className="tracking-tighter text-4xl md:text-5xl font-black">
+                            Eclips supports multiple Blockchains
+                        </h1>
+                        <p className="text-primary/80 font-semibold text-lg md:text-xl">
+                            Choose a blockchain to get started.
+                        </p>
                     </div>
-                ))}
-            </div>
-
-            {/* Send Modal (simple inline for brevity - you can turn into proper modal) */}
-            {selectedWallet && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-                    <div className="bg-zinc-900 p-8 rounded-3xl w-full max-w-md">
-                        <h2 className="text-2xl font-bold mb-6">Send {selectedWallet.chain === 'solana' ? 'SOL' : 'ETH'}</h2>
-
-                        <input
-                            placeholder="Recipient address"
-                            value={sendForm.to}
-                            onChange={e => setSendForm({ ...sendForm, to: e.target.value })}
-                            className="w-full bg-zinc-800 p-4 rounded-2xl mb-4 font-mono"
-                        />
-                        <input
-                            placeholder="Amount"
-                            type="number"
-                            value={sendForm.amount}
-                            onChange={e => setSendForm({ ...sendForm, amount: e.target.value })}
-                            className="w-full bg-zinc-800 p-4 rounded-2xl mb-6"
-                        />
-
-                        <div className="flex gap-4">
-                            <button onClick={() => setSelectedWallet(null)} className="flex-1 py-4 border border-zinc-700 rounded-2xl">Cancel</button>
-                            <button onClick={sendTransection} disabled={loading} className="flex-1 bg-emerald-600 py-4 rounded-2xl font-semibold">
-                                {loading ? 'Sending...' : 'Confirm Transaction'}
-                            </button>
-                        </div>
+                    <div className="flex gap-2">
+                        <Button 
+                            className="w-32 h-12"
+                            size={"lg"}
+                            onClick={() => {
+                                setActiveChain('solana');
+                                toast("Wallet selected. Now please generate a wallet.");
+                            }}
+                        >
+                            Solana
+                        </Button>
+                        <Button 
+                            className="w-32 h-12"
+                            size={"lg"}
+                            onClick={() => {
+                                setActiveChain('ethereum');
+                                toast("Wallet selected. Now please generate a wallet.");
+                            }}
+                        >
+                            Ethereum
+                        </Button>
                     </div>
-                </div>
+                </motion.div>
             )}
         </div>
-    );
+    )
 }
-
