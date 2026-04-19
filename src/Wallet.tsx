@@ -15,7 +15,7 @@ const ETH_RPC_URL = import.meta.env.VITE_ETH_RPC_URL;
 
 export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
     const [wallets, setWallets] = useState<Wallet[]>([])
-    const [selectedWalletIndex, setSelectedWalletIndex] = useState(0);
+    const [selectedWalletIndex, setSelectedWalletIndex] = useState(1);
     const [activeChain, setActiveChain] = useState<'solana' | 'ethereum' | ''>('');
     const [loading, setLoading] = useState(false);
     const [sendForms, setSendForms] = useState<Record<string, { to: string; amount: string }>>({});
@@ -111,7 +111,7 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
     const fetchBalance = async (wallet: Wallet) => {
         try {
             if (wallet.chain === "solana") {
-                const connection = new Connection(ALCHEMY_RPC_URL);
+                const connection = new Connection(SOL_RPC_URL);
                 const balance = await connection.getBalance(new PublicKey(wallet.publicKey));
                 const solBalance = (balance / LAMPORTS_PER_SOL).toFixed(4);
 
@@ -331,38 +331,35 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                             <p className="text-primary/70">No wallets yet for this chain.</p>
                         )}
                         {filteredWallets.map((wallet) => (
-                            <div
-                                key={wallet.id}
-                                className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg border p-4"
-                            >
+                            <div key={wallet.id}
+                                className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg border p-4">
                                 <div className="flex flex-col gap-3">
-                                    <p className="text-sm text-primary/70">Account #{wallet.accountIndex}</p>
+                                    <p className="text-sm text-primary/70">Account {wallet.accountIndex}</p>
                                     <div className="rounded-md border p-3">
-                                        <p className="text-xs text-primary/70">Public Key</p>
+                                        <p className="text-sm text-primary/70">Public Key</p>
                                         <p className="break-all text-sm">{wallet.publicKey}</p>
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="mt-2"
-                                            onClick={() => copyToClipboard(wallet.publicKey)}
-                                        >
+                                            className="mt-2 cursor-pointer"
+                                            onClick={() => copyToClipboard(wallet.publicKey)}>
                                             Copy Public Key
                                         </Button>
                                     </div>
                                     <div className="rounded-md border p-3">
-                                        <p className="text-xs text-primary/70">Private Key</p>
+                                        <p className="text-sm text-primary/70">Private Key</p>
                                         <p className="break-all text-sm">
                                             {wallet.showPrivateKey ? wallet.privateKey : "................................"}
                                         </p>
                                         <div className="mt-2 flex gap-2">
-                                            <Button
+                                            <Button className="cursor-pointer"
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => togglePrivateKey(wallet.id)}
                                             >
                                                 {wallet.showPrivateKey ? "Hide Private Key" : "Show Private Key"}
                                             </Button>
-                                            <Button
+                                            <Button className="cursor-pointer"
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => copyToClipboard(wallet.privateKey)}
@@ -372,7 +369,7 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Button
+                                        <Button className="cursor-pointer"
                                             variant="secondary"
                                             size="sm"
                                             onClick={() => fetchBalance(wallet)}
@@ -386,17 +383,19 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                                 <div className="flex flex-col gap-3 rounded-md border p-3">
                                     <h3 className="text-lg font-semibold">Transactions</h3>
                                     <Input
-                                        placeholder="Receiver address"
+                                        placeholder="Enter receiver address"
                                         value={sendForms[wallet.id]?.to ?? ""}
                                         onChange={(e) => updateSendForm(wallet.id, "to", e.target.value)}
                                     />
                                     <Input
                                         placeholder={`Amount (${wallet.chain === "solana" ? "SOL" : "ETH"})`}
                                         type="number"
+                                        min={"0.01"}
+                                        step={"0.01"}
                                         value={sendForms[wallet.id]?.amount ?? ""}
                                         onChange={(e) => updateSendForm(wallet.id, "amount", e.target.value)}
                                     />
-                                    <Button
+                                    <Button className="cursor-pointer"
                                         disabled={loading}
                                         onClick={() => sendTransection(wallet)}
                                     >
