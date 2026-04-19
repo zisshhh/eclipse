@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { MultiChainWallet } from './Wallet';
 import * as bip39 from "bip39";
@@ -7,10 +7,9 @@ import { Toaster } from './components/ui/sonner';
 function App() {
   const[seedPhrase, setSeedPhrase] = useState("");
 
-  const generateSeedPhrase = () => {
-    const mnemonic = bip39.generateMnemonic(); 
-    setSeedPhrase(mnemonic)
-  }
+  useEffect(() => {
+    setSeedPhrase(bip39.generateMnemonic());
+  }, []);
 
   return ( <>
     <Navbar />
