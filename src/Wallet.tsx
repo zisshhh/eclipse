@@ -20,7 +20,8 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
     const [loading, setLoading] = useState(false);
     const [sendForms, setSendForms] = useState<Record<string, { to: string; amount: string }>>({});
     const [mnemonicInput, setMnemonicInput] = useState<string>("");
-    const [showMnemonicCard, setShowMnemonicCard] = useState(true);
+    const [generatedMnemonic, setGeneratedMnemonic] = useState<string>("");
+    const [showMnemonicCard, setShowMnemonicCard] = useState(false);
 
     useEffect(() => {
         const savedWallet = localStorage.getItem('multiChainWallets');
@@ -45,7 +46,6 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
             let mnemonicSource = mnemonicInput.trim() || mnemonic.trim();
             if (!mnemonicSource) {
                 mnemonicSource = generateMnemonic();
-                setMnemonicInput(mnemonicSource);
                 toast.info("Generated a new mnemonic phrase.");
             }
 
@@ -79,6 +79,8 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
 
             setWallets(prev => [...prev, newWallet]);
             setSelectedWalletIndex(prev => prev + 1);
+            setGeneratedMnemonic(mnemonicSource);
+            setShowMnemonicCard(false);
             toast.success("Wallet created successfully.");
 
         } catch (e) {
@@ -221,6 +223,8 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                             size={"lg"}
                             onClick={() => {
                                 setActiveChain('solana');
+                                setGeneratedMnemonic("");
+                                setShowMnemonicCard(false);
                                 toast("Wallet selected. Now please generate a wallet.");
                             }}
                         >
@@ -231,6 +235,8 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                             size={"lg"}
                             onClick={() => {
                                 setActiveChain('ethereum');
+                                setGeneratedMnemonic("");
+                                setShowMnemonicCard(false);
                                 toast("Wallet selected. Now please generate a wallet.");
                             }}
                         >
@@ -275,7 +281,8 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                                 size="lg"
                                 onClick={() => {
                                     setActiveChain('');
-                                    setShowMnemonicCard(true);
+                                    setGeneratedMnemonic("");
+                                    setShowMnemonicCard(false);
                                 }}
                             >
                                 Change Chain
@@ -283,7 +290,7 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                         </div>
                     </motion.div>
 
-                    {mnemonicInput.trim() && (
+                    {generatedMnemonic && (
                         <div className="rounded-xl border bg-card text-card-foreground cursor-pointer">
                             <button
                                 type="button"
@@ -301,16 +308,16 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                                     role="button"
                                     tabIndex={0}
                                     className="px-4 pb-4"
-                                    onClick={() => copyToClipboard(mnemonicInput.trim())}
+                                    onClick={() => copyToClipboard(generatedMnemonic)}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" || e.key === " ") {
                                             e.preventDefault();
-                                            copyToClipboard(mnemonicInput.trim());
+                                            copyToClipboard(generatedMnemonic);
                                         }
                                     }}
                                 >
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                        {mnemonicInput.trim().split(/\s+/).map((word, index) => (
+                                        {generatedMnemonic.split(/\s+/).map((word, index) => (
                                             <div
                                                 key={`${word}-${index}`}
                                                 className="rounded-md border bg-background px-3 py-2 text-sm"
