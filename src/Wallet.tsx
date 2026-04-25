@@ -199,7 +199,7 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
     const filteredWallets = activeChain ? wallets.filter((w) => w.chain === activeChain) : [];
 
     return (
-        <div className="flex flex-col gap-4 p-12">
+        <div className="flex flex-1 flex-col gap-4 px-12 py-4">
             {activeChain === '' && (
                 <motion.div className="flex flex-col gap-4"
                     initial={{ opacity: 0, y: -20 }}
@@ -255,7 +255,7 @@ export const MultiChainWallet = ({ mnemonic }: { mnemonic: string }) => {
                             duration: 0.3,
                             ease: "easeInOut",
                         }}
-                        className="flex flex-col gap-4 my-12"
+                        className="flex flex-col gap-4"
                     >
                         <div className="flex flex-col gap-2">
                             <h1 className="tracking-tighter text-4xl md:text-5xl font-black">
